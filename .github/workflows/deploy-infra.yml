@@ -21,9 +21,8 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-northeast-2
 
-      - name: Sync infra files to DB server via SSM
+      - name: Deploy infra
         run: |
-          # docker-compose.yml 내용을 base64로 인코딩해서 명령어로 전달
           COMPOSE_CONTENT=$(base64 -w 0 infra/docker-compose.yml)
           
           aws ssm send-command \
@@ -32,6 +31,7 @@ jobs:
             --parameters '{"commands":[
               "mkdir -p /home/ubuntu/marchive-infra",
               "echo '"$COMPOSE_CONTENT"' | base64 -d > /home/ubuntu/marchive-infra/docker-compose.yml",
+              "cd /home/ubuntu/marchive-infra && MYSQL_ROOT_PASSWORD='"${{ secrets.MYSQL_ROOT_PASSWORD }}"' docker compose down",
               "cd /home/ubuntu/marchive-infra && MYSQL_ROOT_PASSWORD='"${{ secrets.MYSQL_ROOT_PASSWORD }}"' docker compose up -d"
             ]}' \
             --region ap-northeast-2
