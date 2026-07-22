@@ -4,6 +4,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true # 초반만
-  profiles:
-    active: local
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
