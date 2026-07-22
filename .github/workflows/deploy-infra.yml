@@ -1,0 +1,36 @@
+name: Deploy Infra to DB Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+
+jobs:
+  deploy-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      - name: Sync infra files to DB server via SSM
+        run: |
+          # docker-compose.yml 내용을 base64로 인코딩해서 명령어로 전달
+          COMPOSE_CONTENT=$(base64 -w 0 infra/docker-compose.yml)
+          
+          aws ssm send-command \
+            --instance-ids "${{ secrets.DB_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters '{"commands":[
+              "mkdir -p /home/ubuntu/marchive-infra",
+              "echo '"$COMPOSE_CONTENT"' | base64 -d > /home/ubuntu/marchive-infra/docker-compose.yml",
+              "cd /home/ubuntu/marchive-infra && MYSQL_ROOT_PASSWORD='"${{ secrets.MYSQL_ROOT_PASSWORD }}"' docker compose up -d"
+            ]}' \
+            --region ap-northeast-2
