@@ -137,3 +137,7 @@ ipython_config.py
 .gradle
 
 # End of https://www.toptal.com/developers/gitignore/api/gradle,intellij,java
+### Infra data volumes ###
+infra/es_data/
+infra/mysql_data/
+infra/qdrant_data/
