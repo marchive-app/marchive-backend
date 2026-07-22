@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: marchive-backend
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true # 초반만
+  profiles:
+    active: local
