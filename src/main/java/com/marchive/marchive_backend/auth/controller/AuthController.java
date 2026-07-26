@@ -1,11 +1,13 @@
 package com.marchive.marchive_backend.auth.controller;
 
 import com.marchive.marchive_backend.auth.service.AuthService;
+import com.marchive.marchive_backend.auth.service.AuthService.TokenPair;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -18,24 +20,26 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping("/google")
-    public AuthService.TokenPair googleLogin(@RequestBody GoogleLoginRequest request) {
-        return authService.loginOrSignup(request.idToken());
+    @PostMapping("/login")
+    public ResponseEntity<TokenPair> login(@RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.loginOrSignup(request.idToken()));
     }
 
     @PostMapping("/refresh")
-    public AuthService.TokenPair refresh(@RequestBody TokenRequest request) {
-        return authService.refresh(request.refreshToken());
+    public ResponseEntity<TokenPair> refresh(@RequestBody TokenRequest request) {
+        return ResponseEntity.ok(authService.refresh(request.refreshToken()));
     }
 
     @PostMapping("/logout")
-    public void logout(@RequestBody TokenRequest request) {
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal TokenRequest request) {
         authService.logout(request.refreshToken());
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/withdraw")
-    public void withdraw(@RequestParam Long userId) {
+    public ResponseEntity<Void> withdraw(@AuthenticationPrincipal Long userId) {
         authService.withdraw(userId);
+        return ResponseEntity.noContent().build();
     }
 
     public record GoogleLoginRequest(String idToken) {

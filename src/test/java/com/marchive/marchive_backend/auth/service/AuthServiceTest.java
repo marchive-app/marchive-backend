@@ -12,7 +12,7 @@ import com.marchive.marchive_backend.auth.domain.RefreshToken;
 import com.marchive.marchive_backend.auth.domain.User;
 import com.marchive.marchive_backend.auth.repository.RefreshTokenRepository;
 import com.marchive.marchive_backend.auth.repository.UserRepository;
-import com.marchive.marchive_backend.auth.security.GoogleTokenVerifier;
+import com.marchive.marchive_backend.auth.security.DefaultGoogleTokenVerifier;
 import com.marchive.marchive_backend.auth.security.JwtProvider;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,7 @@ class AuthServiceTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
     @Mock
-    private GoogleTokenVerifier googleTokenVerifier;
+    private DefaultGoogleTokenVerifier defaultGoogleTokenVerifier;
     @Mock
     private JwtProvider jwtProvider;
 
@@ -38,8 +38,8 @@ class AuthServiceTest {
     private AuthService authService;
 
     private final String fakeGoogleIdToken = "fake-id-token";
-    private final GoogleTokenVerifier.GoogleUserInfo googleUserInfo =
-            new GoogleTokenVerifier.GoogleUserInfo("google-sub-123", "test@gmail.com", "테스트유저");
+    private final DefaultGoogleTokenVerifier.GoogleUserInfo googleUserInfo =
+            new DefaultGoogleTokenVerifier.GoogleUserInfo("google-sub-123", "test@gmail.com", "테스트유저");
 
     private User createUserWithId(Long id, String googleSub, String email, String nickname) {
         User user = new User(googleSub, email, nickname);
@@ -48,7 +48,7 @@ class AuthServiceTest {
     }
 
     private void stubGoogleVerifyAndTokenIssue() {
-        when(googleTokenVerifier.verify(fakeGoogleIdToken)).thenReturn(googleUserInfo);
+        when(defaultGoogleTokenVerifier.verify(fakeGoogleIdToken)).thenReturn(googleUserInfo);
         when(jwtProvider.createAccessToken(anyLong())).thenReturn("fake-access-token");
         when(jwtProvider.createRefreshToken(anyLong())).thenReturn("fake-refresh-token");
         when(jwtProvider.getRefreshTokenValidMs()).thenReturn(1000L * 60 * 60 * 24 * 14);
