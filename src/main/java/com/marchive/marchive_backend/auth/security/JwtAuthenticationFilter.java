@@ -1,5 +1,7 @@
 package com.marchive.marchive_backend.auth.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -34,8 +36,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (Exception e) {
+            } catch (ExpiredJwtException e) {
+                // 1. Access Token이 만료된 경우
                 SecurityContextHolder.clearContext();
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "만료된 Access Token입니다.");
+                return;
+            } catch (JwtException | IllegalArgumentException e) {
+                // 2. Access Token 유효성 검증 실패 (잘못된 서명, 형식 오류 등)
+                SecurityContextHolder.clearContext();
+                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED, "유효하지 않은 Access Token입니다.");
+                return;
             }
         }
         filterChain.doFilter(request, response);
@@ -49,5 +59,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         return null;
+    }
+
+    private void sendErrorResponse(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json;charset=UTF-8");
+
+        String jsonResponse = String.format("{\"error\": \"%s\"}", message);
+        response.getWriter().write(jsonResponse);
     }
 }
