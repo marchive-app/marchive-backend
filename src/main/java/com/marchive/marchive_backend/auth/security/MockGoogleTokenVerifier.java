@@ -1,5 +1,10 @@
 package com.marchive.marchive_backend.auth.security;
 
+import org.springframework.context.annotation.Profile;
+import org.springframework.stereotype.Component;
+
+@Component
+@Profile("local")
 public class MockGoogleTokenVerifier implements GoogleTokenVerifier {
 
     @Override
