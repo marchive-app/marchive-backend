@@ -41,6 +41,10 @@ dependencies {
 
     // 구글 ID Token 검증
     implementation 'com.google.api-client:google-api-client:2.7.0'
+
+    // spring security
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    testImplementation 'org.springframework.security:spring-security-test'
 }
 
 tasks.named('test') {

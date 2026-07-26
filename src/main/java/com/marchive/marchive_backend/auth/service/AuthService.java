@@ -4,7 +4,7 @@ import com.marchive.marchive_backend.auth.domain.RefreshToken;
 import com.marchive.marchive_backend.auth.domain.User;
 import com.marchive.marchive_backend.auth.repository.RefreshTokenRepository;
 import com.marchive.marchive_backend.auth.repository.UserRepository;
-import com.marchive.marchive_backend.auth.security.GoogleTokenVerifier;
+import com.marchive.marchive_backend.auth.security.DefaultGoogleTokenVerifier;
 import com.marchive.marchive_backend.auth.security.JwtProvider;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
@@ -15,26 +15,26 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final GoogleTokenVerifier googleTokenVerifier;
+    private final DefaultGoogleTokenVerifier defaultGoogleTokenVerifier;
     private final JwtProvider jwtProvider;
 
 
     public AuthService(
             UserRepository userRepository,
             RefreshTokenRepository refreshTokenRepository,
-            GoogleTokenVerifier googleTokenVerifier,
+            DefaultGoogleTokenVerifier defaultGoogleTokenVerifier,
             JwtProvider jwtProvider
     ) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.googleTokenVerifier = googleTokenVerifier;
+        this.defaultGoogleTokenVerifier = defaultGoogleTokenVerifier;
         this.jwtProvider = jwtProvider;
     }
 
     // API 1. 구글 로그인 / 회원가입
     @Transactional
     public TokenPair loginOrSignup(String googleIdToken) {
-        GoogleTokenVerifier.GoogleUserInfo googleUser = googleTokenVerifier.verify(googleIdToken);
+        DefaultGoogleTokenVerifier.GoogleUserInfo googleUser = defaultGoogleTokenVerifier.verify(googleIdToken);
 
         User user = userRepository.findByGoogleSub(googleUser.googleSub())
                 .orElseGet(() -> userRepository.save(
