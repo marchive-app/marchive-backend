@@ -35,11 +35,13 @@ public class DefaultGoogleTokenVerifier implements GoogleTokenVerifier {
         try {
             GoogleIdToken idToken = verifier.verify(idTokenString);
             if (idToken == null) {
+                System.out.println(">>> verify() returned NULL (aud/iss/exp 조건 불일치)");
                 throw new IllegalArgumentException("유효하지 않은 구글 ID Token입니다.");
             }
             GoogleIdToken.Payload payload = idToken.getPayload();
             return new GoogleUserInfo(payload.getSubject(), payload.getEmail(), (String) payload.get("name"));
         } catch (Exception e) {
+            e.printStackTrace();  // 임시 추가
             throw new IllegalArgumentException("구글 토큰 검증에 실패했습니다.", e);
         }
     }
