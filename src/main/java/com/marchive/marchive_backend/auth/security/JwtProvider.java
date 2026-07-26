@@ -15,8 +15,7 @@ public class JwtProvider {
 
     private final SecretKey secretKey;
 
-    //    private static final long ACCESS_TOKEN_VALIDITY_MS = 1000L * 60 * 60; // 1hour
-    private static final long ACCESS_TOKEN_VALIDITY_MS = 1000L * 10; // 10s
+    private static final long ACCESS_TOKEN_VALIDITY_MS = 1000L * 60 * 60; // 1hour
     private static final long REFRESH_TOKEN_VALIDITY_MS = 1000L * 60 * 60 * 24 * 14; // 14days
 
     public JwtProvider(@Value("${jwt.secret}") String secret) {
