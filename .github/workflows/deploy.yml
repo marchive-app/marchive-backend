@@ -2,7 +2,7 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   build-and-deploy:
@@ -42,6 +42,6 @@ jobs:
               "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/marchive-backend:latest",
               "docker stop marchive-backend || true",
               "docker rm marchive-backend || true",
-              "docker run -d --name marchive-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=prod -e DB_HOST=${{ secrets.DB_HOST }} -e DB_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} --restart unless-stopped ${{ secrets.DOCKERHUB_USERNAME }}/marchive-backend:latest"
+              "docker run -d --name marchive-backend -p 8080:8080 -e SPRING_PROFILES_ACTIVE=prod -e DB_HOST=${{ secrets.DB_HOST }} -e DB_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} -e JWT_SECRET=${{ secrets.JWT_SECRET }} -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} --restart unless-stopped ${{ secrets.DOCKERHUB_USERNAME }}/marchive-backend:latest"
             ]}' \
             --region ap-northeast-2

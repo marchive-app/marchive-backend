@@ -4,8 +4,8 @@ import com.marchive.marchive_backend.auth.domain.RefreshToken;
 import com.marchive.marchive_backend.auth.domain.User;
 import com.marchive.marchive_backend.auth.repository.RefreshTokenRepository;
 import com.marchive.marchive_backend.auth.repository.UserRepository;
-import com.marchive.marchive_backend.auth.sercurity.GoogleTokenVerifier;
-import com.marchive.marchive_backend.auth.sercurity.JwtProvider;
+import com.marchive.marchive_backend.auth.security.GoogleTokenVerifier;
+import com.marchive.marchive_backend.auth.security.JwtProvider;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,11 +40,6 @@ public class AuthService {
                 .orElseGet(() -> userRepository.save(
                         new User(googleUser.googleSub(), googleUser.email(), googleUser.name())
                 ));
-
-        // 탈퇴했던 사용자가 다시 로그인하면 계정 복구? (재가입 허용 정책)
-//        if (user.isDeleted()) {
-//            user.restore();
-//        }
 
         return issueTokens(user);
     }

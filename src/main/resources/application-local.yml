@@ -5,3 +5,9 @@ spring:
     url: jdbc:mysql://localhost:3306/marchive
     username: root
     password: ${DB_PASSWORD}
+
+jwt:
+  secret: local-test-secret-key-must-be-32-bytes-or-longer!!
+
+google:
+  client-id: local-test-client-id
