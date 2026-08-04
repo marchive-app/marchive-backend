@@ -39,6 +39,6 @@ jobs:
               "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/marchive-backend:dev",
               "docker stop marchive-backend-dev || true",
               "docker rm marchive-backend-dev || true",
-              "docker run -d --name marchive-backend-dev --network host -p 8080:8080 -e SPRING_PROFILES_ACTIVE=dev -e DEV_DB_PASSWORD=${{ secrets.DEV_DB_PASSWORD }} -e DEV_JWT_SECRET=${{ secrets.DEV_JWT_SECRET }} -e DEV_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} --restart unless-stopped ${{ secrets.DOCKERHUB_USERNAME }}/marchive-backend:dev"
+              "docker run -d --name marchive-backend-dev --network host -p 8080:8080 -e SPRING_PROFILES_ACTIVE=dev -e DEV_DB_PASSWORD=${{ secrets.DEV_DB_PASSWORD }} -e DEV_JWT_SECRET=${{ secrets.DEV_JWT_SECRET }} -e GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }} --restart unless-stopped ${{ secrets.DOCKERHUB_USERNAME }}/marchive-backend:dev"
             ]}' \
             --region ap-northeast-2
