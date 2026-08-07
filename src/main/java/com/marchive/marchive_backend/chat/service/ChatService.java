@@ -90,10 +90,21 @@ public class ChatService {
         Message userMessage = new Message(chat, Message.Role.user, searchText);
         messageRepository.save(userMessage);
 
-        // 검색 실행 → assistant 응답 메시지 저장
-        Message assistantMessage = executeSearchAndSave(chat, searchText);
+        // 검색 실행
+        SearchResult result = searchEngine.search(searchText);
 
-        return new SearchResponse(chatMapper.toMessageDto(assistantMessage));
+        // 실패 시 질의 메세지만 반환
+        if (!result.success()) {
+            return new SearchResponse(false, chatMapper.toMessageDto(userMessage), null);
+        }
+
+        // 성공 시 assistant 응답 메시지 저장 후 함께 반환
+        Message assistantMessage = saveAssistantMessage(chat, result);
+        return new SearchResponse(
+                true,
+                chatMapper.toMessageDto(userMessage),
+                chatMapper.toMessageDto(assistantMessage)
+        );
     }
 
     // 4. 새 채팅방 생성 + 검색
@@ -110,29 +121,35 @@ public class ChatService {
         Message userMessage = new Message(chat, Message.Role.user, searchText);
         messageRepository.save(userMessage);
 
-        // 검색 실행 → assistant 응답 메시지 저장
-        Message assistantMessage = executeSearchAndSave(chat, searchText);
+        SearchResult result = searchEngine.search(searchText);
 
-        // 응답: 새 채팅방(초기 메시지 포함) + 방금 생성된 assistant 메시지
-        List<Message> initial = messageRepository.findRecentMessages(
-                chat.getChatId(), PageRequest.of(0, INITIAL_MESSAGE_SIZE));
+        Message assistantMessage = null;
+        if (result.success()) {
+            assistantMessage = saveAssistantMessage(chat, result);
+        }
+
+        // 채팅방의 초기 메시지 목록 (최신순)
+        List<Message> initial = messageRepository.findRecentMessages(chat.getChatId(),
+                PageRequest.of(0, INITIAL_MESSAGE_SIZE));
         List<MessageDto> initialDtos = initial.stream()
                 .map(chatMapper::toMessageDto)
                 .toList();
 
         ChatWithMessagesDto chatDto = new ChatWithMessagesDto(chat.getChatId(), chat.getTitle(), initialDtos);
-        return new SearchNewChatResponse(chatDto, chatMapper.toMessageDto(assistantMessage));
+
+        return new SearchNewChatResponse(
+                chatDto,
+                result.success(),
+                chatMapper.toMessageDto(userMessage),
+                assistantMessage != null ? chatMapper.toMessageDto(assistantMessage) : null
+        );
     }
 
     // --- 공통 로직 ---
 
-    // 검색 실행 후 assistant 메시지 + 북마크(최대 3개) 저장
-    private Message executeSearchAndSave(Chat chat, String searchText) {
-        SearchResult result = searchEngine.search(searchText);
-
+    private Message saveAssistantMessage(Chat chat, SearchResult result) {
         Message assistantMessage = new Message(chat, Message.Role.assistant, result.assistantContents());
 
-        // 검색된 게시물을 최대 3개까지 북마크로 붙임
         List<Post> posts = result.matchedPosts();
         int limit = Math.min(posts.size(), MAX_BOOKMARKS);
         for (int i = 0; i < limit; i++) {
