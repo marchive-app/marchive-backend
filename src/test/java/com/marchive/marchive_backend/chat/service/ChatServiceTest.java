@@ -74,6 +74,15 @@ class ChatServiceTest {
         return message;
     }
 
+    private void stubMessageSaveWithIncrementingId() {
+        final long[] idCounter = {100L};
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
+            Message m = inv.getArgument(0);
+            ReflectionTestUtils.setField(m, "messageId", idCounter[0]++);
+            return m;
+        });
+    }
+
     @Test
     void 채팅_목록을_조회하면_제목만_담긴_목록을_반환한다() {
         chatService = createService();
@@ -129,20 +138,43 @@ class ChatServiceTest {
         Chat chat = createChatWithId(10L, user);
         when(chatRepository.findById(10L)).thenReturn(Optional.of(chat));
         when(searchEngine.search("커피"))
-                .thenReturn(new SearchResult("검색 결과입니다", List.of()));
-        // save 시 messageId 채워서 반환
-        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
-            Message m = inv.getArgument(0);
-            ReflectionTestUtils.setField(m, "messageId", 100L);
-            return m;
-        });
+                .thenReturn(SearchResult.success("검색 결과입니다", List.of()));
+        stubMessageSaveWithIncrementingId();
 
         SearchResponse response = chatService.search(1L, 10L, "커피");
 
-        assertThat(response.message().role()).isEqualTo("assistant");
-        assertThat(response.message().contents()).isEqualTo("검색 결과입니다");
-        // 사용자 질문 + assistant 응답 = save 2번 호출
+        // 성공 여부
+        assertThat(response.success()).isTrue();
+        // 질의 메시지 (사용자가 보낸 검색어)
+        assertThat(response.searchMessage().role()).isEqualTo("user");
+        assertThat(response.searchMessage().contents()).isEqualTo("커피");
+        // 응답 메시지
+        assertThat(response.responseMessage().role()).isEqualTo("assistant");
+        assertThat(response.responseMessage().contents()).isEqualTo("검색 결과입니다");
+        // 질의 + 응답 = save 2번
         verify(messageRepository, times(2)).save(any(Message.class));
+    }
+
+    @Test
+    void 답변_생성에_실패하면_질의_메시지만_반환하고_응답은_null이다() {
+        chatService = createService();
+        User user = createUserWithId(1L);
+        Chat chat = createChatWithId(10L, user);
+        when(chatRepository.findById(10L)).thenReturn(Optional.of(chat));
+        // 검색 실패 상황
+        when(searchEngine.search("실패검색어")).thenReturn(SearchResult.failure());
+        stubMessageSaveWithIncrementingId();
+
+        SearchResponse response = chatService.search(1L, 10L, "실패검색어");
+
+        assertThat(response.success()).isFalse();
+        // 질의 메시지는 반드시 있어야 함
+        assertThat(response.searchMessage()).isNotNull();
+        assertThat(response.searchMessage().contents()).isEqualTo("실패검색어");
+        // 응답 메시지는 null (JSON 직렬화 시 필드 자체가 제외됨)
+        assertThat(response.responseMessage()).isNull();
+        // 질의 메시지만 저장됨 = save 1번
+        verify(messageRepository, times(1)).save(any(Message.class));
     }
 
     @Test
@@ -156,20 +188,42 @@ class ChatServiceTest {
             return c;
         });
         when(searchEngine.search("여행"))
-                .thenReturn(new SearchResult("여행 검색 결과", List.of()));
-        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
-            Message m = inv.getArgument(0);
-            ReflectionTestUtils.setField(m, "messageId", 100L);
-            return m;
-        });
+                .thenReturn(SearchResult.success("여행 검색 결과", List.of()));
+        stubMessageSaveWithIncrementingId();
         when(messageRepository.findRecentMessages(eq(10L), any(Pageable.class)))
                 .thenReturn(List.of());
 
         SearchNewChatResponse response = chatService.searchNewChat(1L, "여행");
 
         assertThat(response.chat().id()).isEqualTo(10L);
-        assertThat(response.chat().title()).isEqualTo("여행");  // title = 검색어
-        assertThat(response.message().contents()).isEqualTo("여행 검색 결과");
+        assertThat(response.chat().title()).isEqualTo("여행");
+        assertThat(response.success()).isTrue();
+        assertThat(response.searchMessage().contents()).isEqualTo("여행");
+        assertThat(response.responseMessage().contents()).isEqualTo("여행 검색 결과");
+    }
+
+    @Test
+    void 새_채팅방에서_답변_생성에_실패해도_채팅방과_질의는_반환된다() {
+        chatService = createService();
+        User user = createUserWithId(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(chatRepository.save(any(Chat.class))).thenAnswer(inv -> {
+            Chat c = inv.getArgument(0);
+            ReflectionTestUtils.setField(c, "chatId", 10L);
+            return c;
+        });
+        when(searchEngine.search("실패검색어")).thenReturn(SearchResult.failure());
+        stubMessageSaveWithIncrementingId();
+        when(messageRepository.findRecentMessages(eq(10L), any(Pageable.class)))
+                .thenReturn(List.of());
+
+        SearchNewChatResponse response = chatService.searchNewChat(1L, "실패검색어");
+
+        // 채팅방은 정상 생성됨
+        assertThat(response.chat().id()).isEqualTo(10L);
+        assertThat(response.success()).isFalse();
+        assertThat(response.searchMessage().contents()).isEqualTo("실패검색어");
+        assertThat(response.responseMessage()).isNull();
     }
 
     @Test
@@ -184,7 +238,7 @@ class ChatServiceTest {
                 mock(Post.class), mock(Post.class), mock(Post.class),
                 mock(Post.class), mock(Post.class));
         when(searchEngine.search("음식"))
-                .thenReturn(new SearchResult("음식 결과", fivePosts));
+                .thenReturn(SearchResult.success("음식 결과", fivePosts));
         when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
             Message m = inv.getArgument(0);
             ReflectionTestUtils.setField(m, "messageId", 100L);
@@ -194,6 +248,6 @@ class ChatServiceTest {
         SearchResponse response = chatService.search(1L, 10L, "음식");
 
         // 5개 중 최대 3개만 북마크로 담겨야 함
-        assertThat(response.message().bookmarkList()).hasSizeLessThanOrEqualTo(3);
+        assertThat(response.responseMessage().bookmarkList()).hasSizeLessThanOrEqualTo(3);
     }
 }

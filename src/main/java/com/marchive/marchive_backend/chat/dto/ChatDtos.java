@@ -1,5 +1,6 @@
 package com.marchive.marchive_backend.chat.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
 public class ChatDtos {
@@ -22,10 +23,21 @@ public class ChatDtos {
     public record MessageListResponse(List<MessageDto> messageList) {
     }
 
-    public record SearchResponse(MessageDto message) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record SearchResponse(
+            boolean success,
+            MessageDto searchMessage, // 항상 포함
+            MessageDto responseMessage // 실패 시 null → JSON에서 제외
+    ) {
     }
 
-    public record SearchNewChatResponse(ChatWithMessagesDto chat, MessageDto message) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record SearchNewChatResponse(
+            ChatWithMessagesDto chat,
+            boolean success,
+            MessageDto searchMessage,
+            MessageDto responseMessage
+    ) {
     }
 
     public record SearchRequest(String searchText) {
