@@ -42,7 +42,8 @@ public class SecurityConfig {
                                 "/swagger-resources/**",
                                 "/webjars/**",
                                 "/actuator/health",
-                                "/error"
+                                "/error",
+                                "/admin/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

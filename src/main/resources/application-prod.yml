@@ -3,3 +3,6 @@ spring:
     url: jdbc:mysql://${DB_HOST}:3306/marchive
     username: root
     password: ${DB_PASSWORD}
+qdrant:
+  host: ${DB_HOST}
+  port: 6333
