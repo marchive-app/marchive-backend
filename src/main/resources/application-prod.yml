@@ -5,4 +5,4 @@ spring:
     password: ${DB_PASSWORD}
 qdrant:
   host: ${DB_HOST}
-  port: 6333
+  port: 6334
