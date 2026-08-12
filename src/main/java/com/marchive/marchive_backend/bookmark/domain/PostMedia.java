@@ -29,10 +29,10 @@ public class PostMedia {
     @Column(name = "media_type", nullable = false, length = 10)
     private MediaType mediaType;
 
-    @Column(name = "media_url", length = 500)
+    @Column(name = "media_url", length = 2000)
     private String mediaUrl;
 
-    @Column(name = "ig_cdn_url", length = 1000)
+    @Column(name = "ig_cdn_url", length = 2000)
     private String igCdnUrl;
 
     @Column(name = "order_index", nullable = false)
