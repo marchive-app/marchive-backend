@@ -42,7 +42,7 @@ public class DefaultGoogleTokenVerifier implements GoogleTokenVerifier {
             return new GoogleUserInfo(
                     payload.getSubject(),
                     payload.getEmail(),
-                    (String) payload.get("nickname"),
+                    (String) payload.get("name"),
                     (String) payload.get("nonce")
             );
         } catch (Exception e) {
