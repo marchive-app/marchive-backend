@@ -35,7 +35,7 @@ public class BookmarkService {
 
     @Transactional
     public BulkResponse saveBulk(Long userId, BulkRequest request) {
-        IgAccount igAccount = igAccountService.getLinkedAccount(userId, request.igUserId());
+        IgAccount igAccount = igAccountService.getOrCreateAccount(userId, request.igUserId(), request.igHandle());
 
         for (BookmarkItem item : request.bookmarks()) {
             // ig_code로 중복 확인 → 이미 있으면 재사용, 없으면 새로 저장

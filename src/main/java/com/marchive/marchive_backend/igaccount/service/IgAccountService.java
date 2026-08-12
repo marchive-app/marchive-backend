@@ -24,17 +24,7 @@ public class IgAccountService {
 
     @Transactional
     public LinkResponse link(Long userId, String igUserId, String igHandle) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-
-        IgAccount igAccount = igAccountRepository.findByIgUserId(igUserId)
-                .map(existing -> {
-                    validateOwner(existing, userId);
-                    existing.updateHandle(igHandle);
-                    return existing;
-                })
-                .orElseGet(() -> igAccountRepository.save(new IgAccount(user, igUserId, igHandle)));
-
+        IgAccount igAccount = getOrCreateAccount(userId, igUserId, igHandle);
         return new LinkResponse(true, toDto(igAccount));
     }
 
@@ -48,6 +38,20 @@ public class IgAccountService {
                 .toList();
 
         return new IgAccountListResponse(accounts);
+    }
+
+    @Transactional
+    public IgAccount getOrCreateAccount(Long userId, String igUserId, String igHandle) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        return igAccountRepository.findByIgUserId(igUserId)
+                .map(existing -> {
+                    validateOwner(existing, userId);
+                    existing.updateHandle(igHandle);   // 핸들 변경 대응, 최신화
+                    return existing;
+                })
+                .orElseGet(() -> igAccountRepository.save(new IgAccount(user, igUserId, igHandle)));
     }
 
     // ig_user_id로 조회 + 소유권 검증
