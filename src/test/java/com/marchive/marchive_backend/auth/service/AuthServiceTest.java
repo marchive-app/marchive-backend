@@ -9,13 +9,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.marchive.marchive_backend.auth.controller.AuthController.GoogleLoginRequest;
 import com.marchive.marchive_backend.auth.domain.RefreshToken;
 import com.marchive.marchive_backend.auth.domain.User;
 import com.marchive.marchive_backend.auth.dto.AuthDtos.TokenPairWithUser;
 import com.marchive.marchive_backend.auth.dto.AuthDtos.UserDto;
 import com.marchive.marchive_backend.auth.repository.RefreshTokenRepository;
 import com.marchive.marchive_backend.auth.repository.UserRepository;
-import com.marchive.marchive_backend.auth.security.DefaultGoogleTokenVerifier;
+import com.marchive.marchive_backend.auth.security.GoogleTokenVerifier;
+import com.marchive.marchive_backend.auth.security.GoogleTokenVerifier.GoogleUserInfo;
 import com.marchive.marchive_backend.auth.security.JwtProvider;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -33,7 +35,7 @@ class AuthServiceTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
     @Mock
-    private DefaultGoogleTokenVerifier defaultGoogleTokenVerifier;
+    private GoogleTokenVerifier googleTokenVerifier;
     @Mock
     private JwtProvider jwtProvider;
 
@@ -41,8 +43,8 @@ class AuthServiceTest {
     private AuthService authService;
 
     private final String fakeGoogleIdToken = "fake-id-token";
-    private final DefaultGoogleTokenVerifier.GoogleUserInfo googleUserInfo =
-            new DefaultGoogleTokenVerifier.GoogleUserInfo("google-sub-123", "test@gmail.com", "테스트유저");
+    private final GoogleUserInfo googleUserInfo =
+            new GoogleUserInfo("google-sub-123", "test@gmail.com", "테스트유저", "mock-nonce");
 
     private User createUserWithId(Long id, String googleSub, String email, String nickname) {
         User user = new User(googleSub, email, nickname);
@@ -50,8 +52,12 @@ class AuthServiceTest {
         return user;
     }
 
+    private GoogleLoginRequest createLoginRequest(String platform, String nonce) {
+        return new GoogleLoginRequest(fakeGoogleIdToken, platform, nonce);
+    }
+
     private void stubGoogleVerifyAndTokenIssue() {
-        when(defaultGoogleTokenVerifier.verify(fakeGoogleIdToken)).thenReturn(googleUserInfo);
+        when(googleTokenVerifier.verify(fakeGoogleIdToken)).thenReturn(googleUserInfo);
         when(jwtProvider.createAccessToken(anyLong())).thenReturn("fake-access-token");
         when(jwtProvider.createRefreshToken(anyLong())).thenReturn("fake-refresh-token");
         when(jwtProvider.getRefreshTokenValidMs()).thenReturn(1000L * 60 * 60 * 24 * 14);
@@ -67,7 +73,7 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(newUser);
 
         // when
-        TokenPairWithUser result = authService.loginOrSignup(fakeGoogleIdToken);
+        TokenPairWithUser result = authService.loginOrSignup(createLoginRequest("mobile", ""));
 
         // then
         assertThat(result.accessToken()).isEqualTo("fake-access-token");
@@ -86,10 +92,44 @@ class AuthServiceTest {
         when(userRepository.findByGoogleSub("google-sub-123")).thenReturn(Optional.of(existingUser));
 
         // when
-        authService.loginOrSignup(fakeGoogleIdToken);
+        authService.loginOrSignup(createLoginRequest("mobile", ""));
 
         // then
         verify(userRepository, never()).save(any(User.class)); // save가 호출되면 안 됨(중복가입 방지)
+    }
+
+    @Test
+    void extension이고_nonce가_토큰과_일치하면_로그인된다() {
+        stubGoogleVerifyAndTokenIssue();
+        User existingUser = createUserWithId(1L, "google-sub-123", "test@gmail.com", "테스트유저");
+        when(userRepository.findByGoogleSub("google-sub-123")).thenReturn(Optional.of(existingUser));
+
+        // googleUserInfo의 nonce가 "mock-nonce"이므로 동일하게 맞춤
+        TokenPairWithUser result = authService.loginOrSignup(createLoginRequest("extension", "mock-nonce"));
+
+        assertThat(result.accessToken()).isEqualTo("fake-access-token");
+    }
+
+    @Test
+    void extension인데_nonce가_토큰과_다르면_예외가_발생한다() {
+        when(googleTokenVerifier.verify(fakeGoogleIdToken)).thenReturn(googleUserInfo);   // 이것만 필요
+
+        assertThatThrownBy(() ->
+                authService.loginOrSignup(createLoginRequest("extension", "different-nonce")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("일치하지");
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void extension인데_nonce가_비어있으면_예외가_발생한다() {
+        when(googleTokenVerifier.verify(fakeGoogleIdToken)).thenReturn(googleUserInfo);   // 이것만 필요
+
+        assertThatThrownBy(() ->
+                authService.loginOrSignup(createLoginRequest("extension", "")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("누락");
     }
 
     @Test

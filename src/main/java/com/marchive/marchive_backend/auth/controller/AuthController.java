@@ -23,7 +23,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<TokenPairWithUser> login(@RequestBody GoogleLoginRequest request) {
-        return ResponseEntity.ok(authService.loginOrSignup(request.idToken()));
+        return ResponseEntity.ok(authService.loginOrSignup(request));
     }
 
     @PostMapping("/refresh")
@@ -48,7 +48,7 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    public record GoogleLoginRequest(String idToken) {
+    public record GoogleLoginRequest(String idToken, String platform, String nonce) {
     }
 
     public record TokenRequest(String refreshToken) {

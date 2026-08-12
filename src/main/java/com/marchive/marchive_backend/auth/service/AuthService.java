@@ -1,5 +1,6 @@
 package com.marchive.marchive_backend.auth.service;
 
+import com.marchive.marchive_backend.auth.controller.AuthController.GoogleLoginRequest;
 import com.marchive.marchive_backend.auth.domain.RefreshToken;
 import com.marchive.marchive_backend.auth.domain.User;
 import com.marchive.marchive_backend.auth.dto.AuthDtos.TokenPairWithUser;
@@ -34,8 +35,10 @@ public class AuthService {
 
     // API 1. 구글 로그인 / 회원가입
     @Transactional
-    public TokenPairWithUser loginOrSignup(String googleIdToken) {
-        GoogleTokenVerifier.GoogleUserInfo googleUser = googleTokenVerifier.verify(googleIdToken);
+    public TokenPairWithUser loginOrSignup(GoogleLoginRequest request) {
+        GoogleTokenVerifier.GoogleUserInfo googleUser = googleTokenVerifier.verify(request.idToken());
+
+        validateNonce(request, googleUser);
 
         User user = userRepository.findByGoogleSub(googleUser.googleSub())
                 .orElseGet(() -> userRepository.save(
@@ -99,6 +102,23 @@ public class AuthService {
         refreshTokenRepository.save(new RefreshToken(user, refreshTokenValue, expiresAt));
 
         return new TokenPairWithUser(accessToken, refreshTokenValue, toUserDto(user));
+    }
+
+    private void validateNonce(GoogleLoginRequest request, GoogleTokenVerifier.GoogleUserInfo googleUser) {
+        if (!"extension".equals(request.platform())) {
+            return;
+        }
+
+        String requestNonce = request.nonce();
+        String tokenNonce = googleUser.nonce();
+
+        if (requestNonce == null || requestNonce.isBlank()) {
+            throw new IllegalArgumentException("nonce가 누락되었습니다.");
+        }
+
+        if (!requestNonce.equals(tokenNonce)) {
+            throw new IllegalArgumentException("nonce가 일치하지 않습니다. 유효하지 않은 요청입니다.");
+        }
     }
 
     private UserDto toUserDto(User user) {
