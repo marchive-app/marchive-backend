@@ -1,7 +1,5 @@
 package com.marchive.marchive_backend.bookmark.service;
 
-import com.marchive.marchive_backend.auth.domain.User;
-import com.marchive.marchive_backend.auth.repository.UserRepository;
 import com.marchive.marchive_backend.bookmark.domain.Bookmark;
 import com.marchive.marchive_backend.bookmark.domain.Post;
 import com.marchive.marchive_backend.bookmark.domain.PostMedia;
@@ -12,7 +10,7 @@ import com.marchive.marchive_backend.bookmark.dto.BookmarkDtos.MediaItem;
 import com.marchive.marchive_backend.bookmark.repository.BookmarkRepository;
 import com.marchive.marchive_backend.bookmark.repository.PostRepository;
 import com.marchive.marchive_backend.igaccount.domain.IgAccount;
-import com.marchive.marchive_backend.igaccount.repository.IgAccountRepository;
+import com.marchive.marchive_backend.igaccount.service.IgAccountService;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.springframework.stereotype.Service;
@@ -21,29 +19,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class BookmarkService {
 
-    private final UserRepository userRepository;
-    private final IgAccountRepository igAccountRepository;
+    private final IgAccountService igAccountService;
     private final PostRepository postRepository;
     private final BookmarkRepository bookmarkRepository;
 
-    public BookmarkService(UserRepository userRepository,
-                           IgAccountRepository igAccountRepository,
-                           PostRepository postRepository,
-                           BookmarkRepository bookmarkRepository
+    public BookmarkService(
+            IgAccountService igAccountService,
+            PostRepository postRepository,
+            BookmarkRepository bookmarkRepository
     ) {
-        this.userRepository = userRepository;
-        this.igAccountRepository = igAccountRepository;
+        this.igAccountService = igAccountService;
         this.postRepository = postRepository;
         this.bookmarkRepository = bookmarkRepository;
     }
 
     @Transactional
     public BulkResponse saveBulk(Long userId, BulkRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-
-        IgAccount igAccount = igAccountRepository.findByIgHandle(request.igHandle())
-                .orElseGet(() -> igAccountRepository.save(new IgAccount(user, request.igHandle())));
+        IgAccount igAccount = igAccountService.getLinkedAccount(userId, request.igUserId());
 
         for (BookmarkItem item : request.bookmarks()) {
             // ig_code로 중복 확인 → 이미 있으면 재사용, 없으면 새로 저장

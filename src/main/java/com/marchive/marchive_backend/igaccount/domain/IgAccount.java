@@ -26,7 +26,10 @@ public class IgAccount {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "ig_handle", nullable = false, unique = true, length = 100)
+    @Column(name = "ig_user_id", nullable = false, unique = true, length = 50)
+    private String igUserId;
+
+    @Column(name = "ig_handle", nullable = false, length = 100)
     private String igHandle;
 
     @Column(name = "profile_image_url", length = 500)
@@ -40,13 +43,32 @@ public class IgAccount {
         this.createdAt = LocalDateTime.now();
     }
 
-    protected IgAccount() {}
+    protected IgAccount() {
+    }
 
-    public IgAccount(User user, String igHandle) {
+    public IgAccount(User user, String igUserId, String igHandle) {
         this.user = user;
+        this.igUserId = igUserId;
         this.igHandle = igHandle;
     }
 
-    public Long getIgAccountId() { return igAccountId; }
-    public String getIgHandle() { return igHandle; }
+    public void updateHandle(String igHandle) {
+        this.igHandle = igHandle;
+    }
+
+    public Long getIgAccountId() {
+        return igAccountId;
+    }
+
+    public String getIgHandle() {
+        return igHandle;
+    }
+
+    public String getIgUserId() {
+        return igUserId;
+    }
+
+    public User getUser() {
+        return user;
+    }
 }

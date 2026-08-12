@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface IgAccountRepository extends JpaRepository<IgAccount, Long> {
 
-    List<IgAccount> findByUser(User user);
+    Optional<IgAccount> findByIgUserId(String igUserId);
 
-    Optional<IgAccount> findByIgHandle(String igHandle);
+    List<IgAccount> findByUser(User user);
 }

@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.marchive.marchive_backend.auth.domain.User;
-import com.marchive.marchive_backend.auth.repository.UserRepository;
 import com.marchive.marchive_backend.bookmark.domain.Bookmark;
 import com.marchive.marchive_backend.bookmark.domain.Post;
 import com.marchive.marchive_backend.bookmark.dto.BookmarkDtos.BookmarkItem;
@@ -20,10 +19,9 @@ import com.marchive.marchive_backend.bookmark.dto.BookmarkDtos.MediaItem;
 import com.marchive.marchive_backend.bookmark.repository.BookmarkRepository;
 import com.marchive.marchive_backend.bookmark.repository.PostRepository;
 import com.marchive.marchive_backend.igaccount.domain.IgAccount;
-import com.marchive.marchive_backend.igaccount.repository.IgAccountRepository;
+import com.marchive.marchive_backend.igaccount.service.IgAccountService;
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,13 +33,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 class BookmarkServiceTest {
 
     @Mock
-    private UserRepository userRepository;
-    @Mock
-    private IgAccountRepository igAccountRepository;
-    @Mock
     private PostRepository postRepository;
     @Mock
     private BookmarkRepository bookmarkRepository;
+    @Mock
+    private IgAccountService igAccountService;
 
     @InjectMocks
     private BookmarkService bookmarkService;
@@ -52,8 +48,8 @@ class BookmarkServiceTest {
         return user;
     }
 
-    private IgAccount createIgAccountWithId(Long id, User owner, String handle) {
-        IgAccount igAccount = new IgAccount(owner, handle);
+    private IgAccount createIgAccountWithId(Long id, User owner, String igUserId, String handle) {
+        IgAccount igAccount = new IgAccount(owner, igUserId, handle);
         ReflectionTestUtils.setField(igAccount, "igAccountId", id);
         return igAccount;
     }
@@ -69,51 +65,45 @@ class BookmarkServiceTest {
     }
 
     @Test
-    void 처음_요청받은_ig_handle이면_인스타계정을_자동으로_생성한다() {
+    void 연동된_계정으로_북마크를_저장한다() {
         User user = createUserWithId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(igAccountRepository.findByIgHandle("my_insta")).thenReturn(Optional.empty());
-        IgAccount newAccount = createIgAccountWithId(10L, user, "my_insta");
-        when(igAccountRepository.save(any(IgAccount.class))).thenReturn(newAccount);
-        when(postRepository.findByIgCode(anyString())).thenReturn(Optional.empty());
+        IgAccount igAccount = createIgAccountWithId(10L, user, "75464276161", "my_insta");
+        when(igAccountService.getLinkedAccount(1L, "75464276161")).thenReturn(igAccount);
+        when(postRepository.findByIgCode(anyString())).thenReturn(java.util.Optional.empty());
         when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
         when(bookmarkRepository.existsByIgAccountAndPost(any(), any())).thenReturn(false);
 
-        BulkRequest request = new BulkRequest("my_insta", List.of(createItem("code1")));
+        BulkRequest request = new BulkRequest("75464276161", "my_insta", List.of(createItem("code1")));
         BulkResponse response = bookmarkService.saveBulk(1L, request);
 
         assertThat(response.success()).isTrue();
-        verify(igAccountRepository).save(any(IgAccount.class));
+        verify(bookmarkRepository).save(any(Bookmark.class));
     }
 
     @Test
-    void 이미_등록된_ig_handle이면_기존_계정을_재사용한다() {
-        User user = createUserWithId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        IgAccount existing = createIgAccountWithId(10L, user, "my_insta");
-        when(igAccountRepository.findByIgHandle("my_insta")).thenReturn(Optional.of(existing));
-        when(postRepository.findByIgCode(anyString())).thenReturn(Optional.empty());
-        when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(bookmarkRepository.existsByIgAccountAndPost(any(), any())).thenReturn(false);
+    void 연동되지_않은_계정이면_예외가_발생한다() {
+        when(igAccountService.getLinkedAccount(1L, "unlinked_id"))
+                .thenThrow(new IllegalArgumentException("연동되지 않은 인스타그램 계정입니다."));
 
-        BulkRequest request = new BulkRequest("my_insta", List.of(createItem("code1")));
-        bookmarkService.saveBulk(1L, request);
+        BulkRequest request = new BulkRequest("unlinked_id", "my_insta", List.of(createItem("code1")));
 
-        verify(igAccountRepository, never()).save(any(IgAccount.class));
+        assertThatThrownBy(() -> bookmarkService.saveBulk(1L, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("연동되지");
+        verify(bookmarkRepository, never()).save(any(Bookmark.class));
     }
 
     @Test
     void 이미_존재하는_게시물이면_새로_저장하지_않고_재사용한다() {
         User user = createUserWithId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        IgAccount igAccount = createIgAccountWithId(10L, user, "my_insta");
-        when(igAccountRepository.findByIgHandle("my_insta")).thenReturn(Optional.of(igAccount));
+        IgAccount igAccount = createIgAccountWithId(10L, user, "75464276161", "my_insta");
+        when(igAccountService.getLinkedAccount(1L, "75464276161")).thenReturn(igAccount);
 
         Post existingPost = new Post("code1", "author", "caption", null, 5);
-        when(postRepository.findByIgCode("code1")).thenReturn(Optional.of(existingPost));
+        when(postRepository.findByIgCode("code1")).thenReturn(java.util.Optional.of(existingPost));
         when(bookmarkRepository.existsByIgAccountAndPost(any(), any())).thenReturn(false);
 
-        BulkRequest request = new BulkRequest("my_insta", List.of(createItem("code1")));
+        BulkRequest request = new BulkRequest("75464276161", "my_insta", List.of(createItem("code1")));
         bookmarkService.saveBulk(1L, request);
 
         verify(postRepository, never()).save(any(Post.class));
@@ -123,16 +113,14 @@ class BookmarkServiceTest {
     @Test
     void 같은_계정이_같은_게시물을_이미_북마크했으면_중복_저장하지_않는다() {
         User user = createUserWithId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        IgAccount igAccount = createIgAccountWithId(10L, user, "my_insta");
-        when(igAccountRepository.findByIgHandle("my_insta")).thenReturn(Optional.of(igAccount));
+        IgAccount igAccount = createIgAccountWithId(10L, user, "75464276161", "my_insta");
+        when(igAccountService.getLinkedAccount(1L, "75464276161")).thenReturn(igAccount);
 
         Post existingPost = new Post("code1", "author", "caption", null, 5);
-        when(postRepository.findByIgCode("code1")).thenReturn(Optional.of(existingPost));
-        // 이미 북마크되어 있음
+        when(postRepository.findByIgCode("code1")).thenReturn(java.util.Optional.of(existingPost));
         when(bookmarkRepository.existsByIgAccountAndPost(igAccount, existingPost)).thenReturn(true);
 
-        BulkRequest request = new BulkRequest("my_insta", List.of(createItem("code1")));
+        BulkRequest request = new BulkRequest("75464276161", "my_insta", List.of(createItem("code1")));
         BulkResponse response = bookmarkService.saveBulk(1L, request);
 
         assertThat(response.success()).isTrue();
@@ -142,28 +130,17 @@ class BookmarkServiceTest {
     @Test
     void 여러_게시물을_한번에_저장하면_모두_처리된다() {
         User user = createUserWithId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        IgAccount igAccount = createIgAccountWithId(10L, user, "my_insta");
-        when(igAccountRepository.findByIgHandle("my_insta")).thenReturn(Optional.of(igAccount));
-        when(postRepository.findByIgCode(anyString())).thenReturn(Optional.empty());
+        IgAccount igAccount = createIgAccountWithId(10L, user, "75464276161", "my_insta");
+        when(igAccountService.getLinkedAccount(1L, "75464276161")).thenReturn(igAccount);
+        when(postRepository.findByIgCode(anyString())).thenReturn(java.util.Optional.empty());
         when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
         when(bookmarkRepository.existsByIgAccountAndPost(any(), any())).thenReturn(false);
 
-        BulkRequest request = new BulkRequest("my_insta",
+        BulkRequest request = new BulkRequest("75464276161", "my_insta",
                 List.of(createItem("code1"), createItem("code2"), createItem("code3")));
         BulkResponse response = bookmarkService.saveBulk(1L, request);
 
         assertThat(response.success()).isTrue();
         verify(bookmarkRepository, times(3)).save(any(Bookmark.class));
-    }
-
-    @Test
-    void 존재하지_않는_사용자면_예외가_발생한다() {
-        when(userRepository.findById(999L)).thenReturn(Optional.empty());
-
-        BulkRequest request = new BulkRequest("my_insta", List.of(createItem("code1")));
-
-        assertThatThrownBy(() -> bookmarkService.saveBulk(999L, request))
-                .isInstanceOf(IllegalArgumentException.class);
     }
 }

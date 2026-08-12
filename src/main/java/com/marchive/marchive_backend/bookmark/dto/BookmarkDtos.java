@@ -25,6 +25,7 @@ public class BookmarkDtos {
     }
 
     public record BulkRequest(
+            @JsonProperty("ig_user_id") String igUserId,
             @JsonProperty("ig_handle") String igHandle,
             List<BookmarkItem> bookmarks
     ) {
