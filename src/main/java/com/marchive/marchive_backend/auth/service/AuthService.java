@@ -42,7 +42,7 @@ public class AuthService {
 
         User user = userRepository.findByGoogleSub(googleUser.googleSub())
                 .orElseGet(() -> userRepository.save(
-                        new User(googleUser.googleSub(), googleUser.email(), googleUser.nickname())
+                        new User(googleUser.googleSub(), googleUser.email(), googleUser.name())
                 ));
 
         return issueTokens(user);

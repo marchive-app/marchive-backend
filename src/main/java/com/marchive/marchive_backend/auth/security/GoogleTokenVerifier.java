@@ -4,6 +4,6 @@ public interface GoogleTokenVerifier {
 
     GoogleUserInfo verify(String idTokenString);
 
-    record GoogleUserInfo(String googleSub, String email, String nickname, String nonce) {
+    record GoogleUserInfo(String googleSub, String email, String name, String nonce) {
     }
 }
