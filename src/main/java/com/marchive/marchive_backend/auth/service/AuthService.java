@@ -2,6 +2,8 @@ package com.marchive.marchive_backend.auth.service;
 
 import com.marchive.marchive_backend.auth.domain.RefreshToken;
 import com.marchive.marchive_backend.auth.domain.User;
+import com.marchive.marchive_backend.auth.dto.AuthDtos.TokenPairWithUser;
+import com.marchive.marchive_backend.auth.dto.AuthDtos.UserDto;
 import com.marchive.marchive_backend.auth.repository.RefreshTokenRepository;
 import com.marchive.marchive_backend.auth.repository.UserRepository;
 import com.marchive.marchive_backend.auth.security.GoogleTokenVerifier;
@@ -32,12 +34,12 @@ public class AuthService {
 
     // API 1. 구글 로그인 / 회원가입
     @Transactional
-    public TokenPair loginOrSignup(String googleIdToken) {
+    public TokenPairWithUser loginOrSignup(String googleIdToken) {
         GoogleTokenVerifier.GoogleUserInfo googleUser = googleTokenVerifier.verify(googleIdToken);
 
         User user = userRepository.findByGoogleSub(googleUser.googleSub())
                 .orElseGet(() -> userRepository.save(
-                        new User(googleUser.googleSub(), googleUser.email(), googleUser.name())
+                        new User(googleUser.googleSub(), googleUser.email(), googleUser.nickname())
                 ));
 
         return issueTokens(user);
@@ -45,7 +47,7 @@ public class AuthService {
 
     // API 2. Access Token 재발급
     @Transactional
-    public TokenPair refresh(String refreshTokenValue) {
+    public TokenPairWithUser refresh(String refreshTokenValue) {
         RefreshToken savedToken = refreshTokenRepository.findByToken(refreshTokenValue)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 refresh token입니다."));
 
@@ -79,7 +81,15 @@ public class AuthService {
         refreshTokenRepository.deleteByUser(user);
     }
 
-    private TokenPair issueTokens(User user) {
+    // API 5. 유저 정보 조회
+    @Transactional(readOnly = true)
+    public UserDto getUserInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+        return toUserDto(user);
+    }
+
+    private TokenPairWithUser issueTokens(User user) {
         String accessToken = jwtProvider.createAccessToken(user.getUserId());
         String refreshTokenValue = jwtProvider.createRefreshToken(user.getUserId());
 
@@ -88,9 +98,10 @@ public class AuthService {
 
         refreshTokenRepository.save(new RefreshToken(user, refreshTokenValue, expiresAt));
 
-        return new TokenPair(accessToken, refreshTokenValue);
+        return new TokenPairWithUser(accessToken, refreshTokenValue, toUserDto(user));
     }
 
-    public record TokenPair(String accessToken, String refreshToken) {
+    private UserDto toUserDto(User user) {
+        return new UserDto(user.getEmail(), user.getNickname());
     }
 }

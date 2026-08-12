@@ -39,7 +39,7 @@ public class DefaultGoogleTokenVerifier implements GoogleTokenVerifier {
                 throw new IllegalArgumentException("유효하지 않은 구글 ID Token입니다.");
             }
             GoogleIdToken.Payload payload = idToken.getPayload();
-            return new GoogleUserInfo(payload.getSubject(), payload.getEmail(), (String) payload.get("name"));
+            return new GoogleUserInfo(payload.getSubject(), payload.getEmail(), (String) payload.get("nickname"));
         } catch (Exception e) {
             e.printStackTrace();  // 임시 추가
             throw new IllegalArgumentException("구글 토큰 검증에 실패했습니다.", e);

@@ -1,6 +1,7 @@
 package com.marchive.marchive_backend.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
@@ -10,6 +11,8 @@ import static org.mockito.Mockito.when;
 
 import com.marchive.marchive_backend.auth.domain.RefreshToken;
 import com.marchive.marchive_backend.auth.domain.User;
+import com.marchive.marchive_backend.auth.dto.AuthDtos.TokenPairWithUser;
+import com.marchive.marchive_backend.auth.dto.AuthDtos.UserDto;
 import com.marchive.marchive_backend.auth.repository.RefreshTokenRepository;
 import com.marchive.marchive_backend.auth.repository.UserRepository;
 import com.marchive.marchive_backend.auth.security.DefaultGoogleTokenVerifier;
@@ -64,11 +67,13 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(newUser);
 
         // when
-        AuthService.TokenPair result = authService.loginOrSignup(fakeGoogleIdToken);
+        TokenPairWithUser result = authService.loginOrSignup(fakeGoogleIdToken);
 
         // then
         assertThat(result.accessToken()).isEqualTo("fake-access-token");
         assertThat(result.refreshToken()).isEqualTo("fake-refresh-token");
+        assertThat(result.user().email()).isEqualTo("test@gmail.com");
+        assertThat(result.user().nickname()).isEqualTo("테스트유저");
         verify(userRepository).save(any(User.class)); // 회원가입(save)이 실제로 호출됐는지 확인
         verify(refreshTokenRepository).save(any(RefreshToken.class)); // 토큰도 저장됐는지 확인
     }
@@ -113,5 +118,24 @@ class AuthServiceTest {
         // then
         assertThat(user.isDeleted()).isTrue();
         verify(refreshTokenRepository).deleteByUser(user);
+    }
+
+    @Test
+    void 유저_정보를_조회하면_UserDto를_반환한다() {
+        User user = createUserWithId(1L, "google-sub-123", "test@gmail.com", "테스트유저");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        UserDto result = authService.getUserInfo(1L);
+
+        assertThat(result.email()).isEqualTo("test@gmail.com");
+        assertThat(result.nickname()).isEqualTo("테스트유저");
+    }
+
+    @Test
+    void 존재하지_않는_유저_조회시_예외가_발생한다() {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.getUserInfo(999L))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

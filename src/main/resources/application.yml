@@ -19,3 +19,7 @@ jwt:
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}
+
+qdrant:
+  host: ${DB_HOST}
+  port: 6334

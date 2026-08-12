@@ -9,6 +9,3 @@ spring:
     show-sql: true
 jwt:
   secret: ${DEV_JWT_SECRET}
-qdrant:
-  host: ${DB_HOST}
-  port: 6334
