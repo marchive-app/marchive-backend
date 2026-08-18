@@ -29,8 +29,8 @@ public class PostMedia {
     @Column(name = "media_type", nullable = false, length = 10)
     private MediaType mediaType;
 
-    @Column(name = "media_url", length = 2000)
-    private String mediaUrl;
+    @Column(name = "media_key", length = 2000)
+    private String mediaKey;
 
     @Column(name = "ig_cdn_url", length = 2000)
     private String igCdnUrl;
@@ -56,8 +56,12 @@ public class PostMedia {
         return postMediaId;
     }
 
-    public String getMediaUrl() {
-        return mediaUrl;
+    public String getMediaKey() {
+        return mediaKey;
+    }
+
+    public void updateMediaKey(String mediaKey) {
+        this.mediaKey = mediaKey;
     }
 
     public int getOrderIndex() {

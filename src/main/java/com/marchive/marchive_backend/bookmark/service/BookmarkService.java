@@ -9,6 +9,7 @@ import com.marchive.marchive_backend.bookmark.dto.BookmarkDtos.BulkResponse;
 import com.marchive.marchive_backend.bookmark.dto.BookmarkDtos.MediaItem;
 import com.marchive.marchive_backend.bookmark.repository.BookmarkRepository;
 import com.marchive.marchive_backend.bookmark.repository.PostRepository;
+import com.marchive.marchive_backend.global.s3.S3Service;
 import com.marchive.marchive_backend.igaccount.domain.IgAccount;
 import com.marchive.marchive_backend.igaccount.service.IgAccountService;
 import java.time.LocalDateTime;
@@ -22,15 +23,18 @@ public class BookmarkService {
     private final IgAccountService igAccountService;
     private final PostRepository postRepository;
     private final BookmarkRepository bookmarkRepository;
+    private final S3Service s3Service;
 
     public BookmarkService(
             IgAccountService igAccountService,
             PostRepository postRepository,
-            BookmarkRepository bookmarkRepository
+            BookmarkRepository bookmarkRepository,
+            S3Service s3Service
     ) {
         this.igAccountService = igAccountService;
         this.postRepository = postRepository;
         this.bookmarkRepository = bookmarkRepository;
+        this.s3Service = s3Service;
     }
 
     @Transactional
@@ -66,12 +70,18 @@ public class BookmarkService {
 
         if (item.mediaList() != null) {
             for (MediaItem media : item.mediaList()) {
-                post.addMedia(new PostMedia(
+                PostMedia postMedia = new PostMedia(
                         post,
-                        PostMedia.MediaType.valueOf(media.mediaType()),   // "image"/"video"
+                        PostMedia.MediaType.valueOf(media.mediaType()),
                         media.igCdnUrl(),
                         media.orderIndex() != null ? media.orderIndex() : 0
-                ));
+                );
+
+                // CDN URL을 S3로 백업하고 key 저장
+                String key = s3Service.uploadFromUrl(media.igCdnUrl());
+                postMedia.updateMediaKey(key);
+
+                post.addMedia(postMedia);
             }
         }
 

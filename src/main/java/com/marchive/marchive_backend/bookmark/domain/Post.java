@@ -68,7 +68,7 @@ public class Post {
 
     // 대표 썸네일 = 첫 번째 미디어의 media_url
     public String getThumbnailUrl() {
-        return mediaList.isEmpty() ? null : mediaList.get(0).getMediaUrl();
+        return mediaList.isEmpty() ? null : mediaList.getFirst().getMediaKey();
     }
 
     public void addMedia(PostMedia media) {

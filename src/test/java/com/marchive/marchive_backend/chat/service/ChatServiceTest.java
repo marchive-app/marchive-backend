@@ -24,6 +24,7 @@ import com.marchive.marchive_backend.chat.repository.ChatRepository;
 import com.marchive.marchive_backend.chat.repository.MessageRepository;
 import com.marchive.marchive_backend.chat.search.SearchEngine;
 import com.marchive.marchive_backend.chat.search.SearchResult;
+import com.marchive.marchive_backend.global.s3.S3Service;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -44,9 +45,11 @@ class ChatServiceTest {
     private UserRepository userRepository;
     @Mock
     private SearchEngine searchEngine;
+    @Mock
+    private S3Service s3Service;
 
     // ChatMapper는 순수 변환 로직이라 진짜 객체를 씀 (Mock 불필요)
-    private final ChatMapper chatMapper = new ChatMapper();
+    private final ChatMapper chatMapper = new ChatMapper(s3Service);
 
     private ChatService chatService;
 

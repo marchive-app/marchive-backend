@@ -23,3 +23,8 @@ google:
 qdrant:
   host: ${DB_HOST}
   port: 6334
+
+aws:
+  region: ap-northeast-2
+  s3:
+    bucket: marchive-s3-478982785818

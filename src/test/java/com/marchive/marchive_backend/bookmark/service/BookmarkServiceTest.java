@@ -17,6 +17,7 @@ import com.marchive.marchive_backend.bookmark.dto.BookmarkDtos.BulkResponse;
 import com.marchive.marchive_backend.bookmark.dto.BookmarkDtos.MediaItem;
 import com.marchive.marchive_backend.bookmark.repository.BookmarkRepository;
 import com.marchive.marchive_backend.bookmark.repository.PostRepository;
+import com.marchive.marchive_backend.global.s3.S3Service;
 import com.marchive.marchive_backend.igaccount.domain.IgAccount;
 import com.marchive.marchive_backend.igaccount.service.IgAccountService;
 import java.time.OffsetDateTime;
@@ -37,6 +38,8 @@ class BookmarkServiceTest {
     private BookmarkRepository bookmarkRepository;
     @Mock
     private IgAccountService igAccountService;
+    @Mock
+    private S3Service s3Service;
 
     @InjectMocks
     private BookmarkService bookmarkService;
