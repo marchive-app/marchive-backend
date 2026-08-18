@@ -45,6 +45,10 @@ dependencies {
     // spring security
     implementation 'org.springframework.boot:spring-boot-starter-security'
     testImplementation 'org.springframework.security:spring-security-test'
+
+    // Qdrant Java Client
+    implementation 'io.qdrant:client:1.10.0'
+    implementation 'com.google.protobuf:protobuf-java:4.28.2'
 }
 
 tasks.named('test') {

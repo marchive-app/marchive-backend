@@ -12,7 +12,8 @@ public class MockGoogleTokenVerifier implements GoogleTokenVerifier {
         return new GoogleUserInfo(
                 "local-test-google-sub-12345",
                 "testuser@marchive.com",
-                "우리는테스트유저"
+                "우리는테스트유저",
+                "mock-nonce"
         );
     }
 }

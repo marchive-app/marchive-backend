@@ -29,10 +29,10 @@ public class PostMedia {
     @Column(name = "media_type", nullable = false, length = 10)
     private MediaType mediaType;
 
-    @Column(name = "media_url", nullable = false, length = 500)
+    @Column(name = "media_url", length = 2000)
     private String mediaUrl;
 
-    @Column(name = "ig_cdn_url", length = 1000)
+    @Column(name = "ig_cdn_url", length = 2000)
     private String igCdnUrl;
 
     @Column(name = "order_index", nullable = false)
@@ -45,10 +45,9 @@ public class PostMedia {
     protected PostMedia() {
     }
 
-    public PostMedia(Post post, MediaType mediaType, String mediaUrl, String igCdnUrl, int orderIndex) {
+    public PostMedia(Post post, MediaType mediaType, String igCdnUrl, int orderIndex) {
         this.post = post;
         this.mediaType = mediaType;
-        this.mediaUrl = mediaUrl;
         this.igCdnUrl = igCdnUrl;
         this.orderIndex = orderIndex;
     }

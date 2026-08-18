@@ -1,7 +1,7 @@
 package com.marchive.marchive_backend.auth.controller;
 
+import com.marchive.marchive_backend.auth.dto.AuthDtos.TokenPairWithUser;
 import com.marchive.marchive_backend.auth.service.AuthService;
-import com.marchive.marchive_backend.auth.service.AuthService.TokenPair;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,12 +22,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenPair> login(@RequestBody GoogleLoginRequest request) {
-        return ResponseEntity.ok(authService.loginOrSignup(request.idToken()));
+    public ResponseEntity<TokenPairWithUser> login(@RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.loginOrSignup(request));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<TokenPair> refresh(@RequestBody TokenRequest request) {
+    public ResponseEntity<TokenPairWithUser> refresh(@RequestBody TokenRequest request) {
         return ResponseEntity.ok(authService.refresh(request.refreshToken()));
     }
 
@@ -48,7 +48,7 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    public record GoogleLoginRequest(String idToken) {
+    public record GoogleLoginRequest(String idToken, String platform, String nonce) {
     }
 
     public record TokenRequest(String refreshToken) {
