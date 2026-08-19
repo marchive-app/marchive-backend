@@ -76,11 +76,6 @@ public class BookmarkService {
                         media.igCdnUrl(),
                         media.orderIndex() != null ? media.orderIndex() : 0
                 );
-
-                // CDN URL을 S3로 백업하고 key 저장
-                String key = s3Service.uploadFromUrl(media.igCdnUrl());
-                postMedia.updateMediaKey(key);
-
                 post.addMedia(postMedia);
             }
         }

@@ -38,8 +38,16 @@ public class PostMedia {
     @Column(name = "order_index", nullable = false)
     private int orderIndex;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "upload_status", nullable = false, length = 20)
+    private UploadStatus uploadStatus = UploadStatus.PENDING;
+
     public enum MediaType {
         image, video
+    }
+
+    public enum UploadStatus {
+        PENDING, PROCESSING, DONE, FAILED
     }
 
     protected PostMedia() {
@@ -66,5 +74,9 @@ public class PostMedia {
 
     public int getOrderIndex() {
         return orderIndex;
+    }
+
+    public UploadStatus getUploadStatus() {
+        return uploadStatus;
     }
 }

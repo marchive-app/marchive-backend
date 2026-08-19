@@ -1,6 +1,7 @@
 package com.marchive.marchive_backend.chat.service;
 
 import com.marchive.marchive_backend.bookmark.domain.Post;
+import com.marchive.marchive_backend.bookmark.domain.PostMedia;
 import com.marchive.marchive_backend.chat.domain.Message;
 import com.marchive.marchive_backend.chat.domain.MessageBookmark;
 import com.marchive.marchive_backend.chat.dto.ChatDtos.BookmarkDto;
@@ -56,13 +57,17 @@ public class ChatMapper {
 
     private BookmarkDto toBookmarkDto(MessageBookmark mb) {
         Post post = mb.getPost();
-        String thumnailUrl = post.getMediaList().isEmpty()
+        PostMedia firstMedia = post.getMediaList().isEmpty()
                 ? null
-                : s3Service.generatePresignedUrl(post.getMediaList().getFirst().getMediaKey());
+                : post.getMediaList().getFirst();
+
+        String thumbnailUrl = (firstMedia != null && firstMedia.getUploadStatus() == PostMedia.UploadStatus.DONE)
+                ? s3Service.generatePresignedUrl(firstMedia.getMediaKey())
+                : null;
 
         return new BookmarkDto(
                 mb.getMessageBookmarkId(),
-                thumnailUrl,
+                thumbnailUrl,
                 mb.getPost().getContentUrl()
         );
     }
