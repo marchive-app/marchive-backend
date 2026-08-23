@@ -42,6 +42,13 @@ public class PostMedia {
     @Column(name = "upload_status", nullable = false, length = 20)
     private UploadStatus uploadStatus = UploadStatus.PENDING;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ocr_status", nullable = false, length = 20)
+    private OcrStatus ocrStatus = OcrStatus.PENDING;
+
+    @Column(name = "ocr_text", columnDefinition = "TEXT")
+    private String ocrText;
+
     public enum MediaType {
         image, video
     }
@@ -49,6 +56,8 @@ public class PostMedia {
     public enum UploadStatus {
         PENDING, PROCESSING, DONE, FAILED
     }
+
+    public enum OcrStatus {PENDING, PROCESSING, DONE, FAILED}
 
     protected PostMedia() {
     }
@@ -78,5 +87,13 @@ public class PostMedia {
 
     public UploadStatus getUploadStatus() {
         return uploadStatus;
+    }
+
+    public OcrStatus getOcrStatus() {
+        return ocrStatus;
+    }
+
+    public String getOcrText() {
+        return ocrText;
     }
 }

@@ -36,7 +36,7 @@ public class QdrantService {
             qdrantClient.createCollectionAsync(
                     COLLECTION_NAME,
                     VectorParams.newBuilder()
-                            .setSize(512)
+                            .setSize(1536)
                             .setDistance(Distance.Cosine)
                             .build()
             ).get();
