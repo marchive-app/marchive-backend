@@ -51,6 +51,7 @@ public class GeminiSearchEngine implements SearchEngine {
 
             return SearchResult.success(answer, similarPosts);
         } catch (Exception e) {
+            e.printStackTrace();
             return SearchResult.failure();
         }
     }
