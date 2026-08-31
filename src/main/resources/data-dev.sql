@@ -9,7 +9,8 @@ INSERT INTO posts (ig_code, author_handle, caption, posted_at, like_count, creat
 VALUES ('TEST_CODE_001', 'coffee_lover', 'A cup of coffee today', NOW(), 10, NOW());
 
 INSERT INTO post_media (post_id, media_type, media_key, ig_cdn_url, order_index, upload_status, ocr_status)
-VALUES (1, 'image', '실제_S3_key_값', 'https://example.com/fake.jpg', 0, 'DONE', 'DONE');
+VALUES (1, 'image', 'media/ig/a3/4d/a34dde1af84f746d86d549a5eaa94f06da858aed8ea8f8feba361b71b7c7ceb2.jpg',
+        'https://example.com/fake.jpg', 0, 'DONE', 'DONE');
 
 INSERT INTO bookmarks (ig_account_id, post_id, bookmarked_at)
 VALUES (1, 1, NOW());
