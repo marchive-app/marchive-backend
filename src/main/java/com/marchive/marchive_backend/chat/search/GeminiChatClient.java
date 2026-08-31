@@ -1,6 +1,7 @@
 package com.marchive.marchive_backend.chat.search;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 public class GeminiChatClient {
 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${gemini.api-key}")
     private String apiKey;
@@ -38,15 +40,20 @@ public class GeminiChatClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-goog-api-key", apiKey);
 
-        JsonNode response = restTemplate.postForObject(
+        String responseBody = restTemplate.postForObject(
                 GENERATE_URL,
                 new HttpEntity<>(requestBody, headers),
-                JsonNode.class
+                String.class
         );
 
-        return response.path("candidates").get(0)
-                .path("content").path("parts").get(0)
-                .path("text").asText();
+        try {
+            JsonNode response = objectMapper.readTree(responseBody);
+            return response.path("candidates").get(0)
+                    .path("content").path("parts").get(0)
+                    .path("text").asText();
+        } catch (Exception e) {
+            throw new IllegalStateException("Gemini 답변 생성 응답 파싱에 실패했습니다: " + responseBody, e);
+        }
     }
 
     private String buildPrompt(String userQuestion, String contextInfo) {

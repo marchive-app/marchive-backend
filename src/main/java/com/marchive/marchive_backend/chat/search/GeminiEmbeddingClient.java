@@ -41,17 +41,22 @@ public class GeminiEmbeddingClient {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("x-goog-api-key", apiKey);
 
-        JsonNode response = restTemplate.postForObject(
+        String responseBody = restTemplate.postForObject(
                 EMBED_URL,
                 new HttpEntity<>(requestBody, headers),
-                JsonNode.class
+                String.class
         );
 
-        List<Float> vector = new ArrayList<>();
-        JsonNode values = response.path("embedding").path("values");
-        for (JsonNode v : values) {
-            vector.add((float) v.asDouble());
+        try {
+            JsonNode response = objectMapper.readTree(responseBody);
+            List<Float> vector = new ArrayList<>();
+            JsonNode values = response.path("embedding").path("values");
+            for (JsonNode v : values) {
+                vector.add((float) v.asDouble());
+            }
+            return vector;
+        } catch (Exception e) {
+            throw new IllegalStateException("Gemini 임베딩 응답 파싱에 실패했습니다.: " + responseBody, e);
         }
-        return vector;
     }
 }
