@@ -1,6 +1,5 @@
 package com.marchive.marchive_backend.chat.controller;
 
-import com.marchive.marchive_backend.chat.dto.ChatDtos;
 import com.marchive.marchive_backend.chat.dto.ChatDtos.ChatListResponse;
 import com.marchive.marchive_backend.chat.dto.ChatDtos.MessageListResponse;
 import com.marchive.marchive_backend.chat.dto.ChatDtos.SearchNewChatResponse;
@@ -51,7 +50,7 @@ public class ChatController {
     public ResponseEntity<SearchResponse> search(
             @AuthenticationPrincipal Long userId,
             @PathVariable Long chatId,
-            @RequestBody ChatDtos.SearchRequest request
+            @RequestBody SearchRequest request
     ) {
         return ResponseEntity.ok(chatService.search(userId, chatId, request.searchText()));
     }
@@ -62,6 +61,6 @@ public class ChatController {
             @AuthenticationPrincipal Long userId,
             @RequestBody SearchRequest request
     ) {
-        return ResponseEntity.ok(chatService.searchNewChat(userId, request.searchText()));
+        return ResponseEntity.ok(chatService.searchNewChat(userId, request.searchText(), request.igAccountId()));
     }
 }

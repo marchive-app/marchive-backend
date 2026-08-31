@@ -1,6 +1,7 @@
 package com.marchive.marchive_backend.chat.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class ChatDtos {
@@ -40,6 +41,9 @@ public class ChatDtos {
     ) {
     }
 
-    public record SearchRequest(String searchText) {
+    public record SearchRequest(
+            @JsonProperty("ig_account_id") Long igAccountId,
+            String searchText
+    ) {
     }
 }

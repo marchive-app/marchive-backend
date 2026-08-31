@@ -2,5 +2,5 @@ package com.marchive.marchive_backend.chat.search;
 
 public interface SearchEngine {
 
-    SearchResult search(String searchText);
+    SearchResult search(String searchText, Long igAccountId);
 }

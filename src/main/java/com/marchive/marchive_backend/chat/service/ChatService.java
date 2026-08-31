@@ -17,6 +17,8 @@ import com.marchive.marchive_backend.chat.repository.ChatRepository;
 import com.marchive.marchive_backend.chat.repository.MessageRepository;
 import com.marchive.marchive_backend.chat.search.SearchEngine;
 import com.marchive.marchive_backend.chat.search.SearchResult;
+import com.marchive.marchive_backend.igaccount.domain.IgAccount;
+import com.marchive.marchive_backend.igaccount.service.IgAccountService;
 import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -35,19 +37,17 @@ public class ChatService {
     private final UserRepository userRepository;
     private final SearchEngine searchEngine;
     private final ChatMapper chatMapper;
+    private final IgAccountService igAccountService;
 
-    public ChatService(
-            ChatRepository chatRepository,
-            MessageRepository messageRepository,
-            UserRepository userRepository,
-            SearchEngine searchEngine,
-            ChatMapper chatMapper
-    ) {
+    public ChatService(ChatRepository chatRepository, MessageRepository messageRepository,
+                       UserRepository userRepository,
+                       SearchEngine searchEngine, ChatMapper chatMapper, IgAccountService igAccountService) {
         this.chatRepository = chatRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.searchEngine = searchEngine;
         this.chatMapper = chatMapper;
+        this.igAccountService = igAccountService;
     }
 
     // 1. 채팅 목록 조회
@@ -87,19 +87,18 @@ public class ChatService {
         validateOwner(chat, userId);
 
         // 사용자 질문 메시지 저장
-        Message userMessage = new Message(chat, Message.Role.user, searchText);
-        messageRepository.save(userMessage);
-
+        Message userMessage = messageRepository.save(new Message(chat, Message.Role.user, searchText));
         // 검색 실행
-        SearchResult result = searchEngine.search(searchText);
+        SearchResult result = searchEngine.search(searchText, chat.getIgAccount().getIgAccountId());
 
         // 실패 시 질의 메세지만 반환
         if (!result.success()) {
             return new SearchResponse(false, chatMapper.toMessageDto(userMessage), null);
         }
 
-        // 성공 시 assistant 응답 메시지 저장 후 함께 반환
         Message assistantMessage = saveAssistantMessage(chat, result);
+
+        // 성공 시 assistant 응답 메시지 저장 후 함께 반환
         return new SearchResponse(
                 true,
                 chatMapper.toMessageDto(userMessage),
@@ -109,26 +108,29 @@ public class ChatService {
 
     // 4. 새 채팅방 생성 + 검색
     @Transactional
-    public SearchNewChatResponse searchNewChat(Long userId, String searchText) {
+    public SearchNewChatResponse searchNewChat(Long userId, String searchText, Long igAccountId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        // 새 채팅방 생성 (title은 검색어 그대로 — 나중에 LLM 요약으로 개선)
-        Chat chat = new Chat(user, searchText);
+        // igAccountId로 실제 IgAccount 조회 + 소유권 확인
+        IgAccount igAccount = igAccountService.getLinkedAccountById(userId, igAccountId);
+
+        // 새 채팅방 생성 (title은 검색어 그대로, igAccount도 함께 저장)
+        Chat chat = new Chat(user, igAccount, searchText);
         chatRepository.save(chat);
 
         // 사용자 질문 메시지 저장
         Message userMessage = new Message(chat, Message.Role.user, searchText);
         messageRepository.save(userMessage);
 
-        SearchResult result = searchEngine.search(searchText);
+        // igAccountId를 같이 넘겨서 계정별 검색 수행
+        SearchResult result = searchEngine.search(searchText, igAccount.getIgAccountId());
 
         Message assistantMessage = null;
         if (result.success()) {
             assistantMessage = saveAssistantMessage(chat, result);
         }
 
-        // 채팅방의 초기 메시지 목록 (최신순)
         List<Message> initial = messageRepository.findRecentMessages(chat.getChatId(),
                 PageRequest.of(0, INITIAL_MESSAGE_SIZE));
         List<MessageDto> initialDtos = initial.stream()

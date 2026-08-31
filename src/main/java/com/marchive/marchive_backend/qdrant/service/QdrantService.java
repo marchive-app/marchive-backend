@@ -113,6 +113,5 @@ public class QdrantService {
             // DB 서버가 꺼져있거나 네트워크 통신에 실패했을 때
             throw new RuntimeException("Qdrant 유사도 검색 실행 실패: " + e.getMessage(), e);
         }
-
     }
 }

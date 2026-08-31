@@ -25,6 +25,8 @@ import com.marchive.marchive_backend.chat.repository.MessageRepository;
 import com.marchive.marchive_backend.chat.search.SearchEngine;
 import com.marchive.marchive_backend.chat.search.SearchResult;
 import com.marchive.marchive_backend.global.s3.S3Service;
+import com.marchive.marchive_backend.igaccount.domain.IgAccount;
+import com.marchive.marchive_backend.igaccount.service.IgAccountService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -47,6 +49,8 @@ class ChatServiceTest {
     private SearchEngine searchEngine;
     @Mock
     private S3Service s3Service;
+    @Mock
+    private IgAccountService igAccountService;
 
     // ChatMapper는 순수 변환 로직이라 진짜 객체를 씀 (Mock 불필요)
     private final ChatMapper chatMapper = new ChatMapper(s3Service);
@@ -55,7 +59,7 @@ class ChatServiceTest {
 
     // @InjectMocks 대신 직접 생성 (chatMapper를 실제 객체로 넣기 위해)
     private ChatService createService() {
-        return new ChatService(chatRepository, messageRepository, userRepository, searchEngine, chatMapper);
+        return new ChatService(chatRepository, messageRepository, userRepository, searchEngine, chatMapper, igAccountService);
     }
 
     // --- 헬퍼 ---
@@ -65,8 +69,15 @@ class ChatServiceTest {
         return user;
     }
 
+    private IgAccount createIgAccountWithId(Long id, User owner) {
+        IgAccount igAccount = new IgAccount(owner, "ig_user_" + id, "testhandle");
+        ReflectionTestUtils.setField(igAccount, "igAccountId", id);
+        return igAccount;
+    }
+
     private Chat createChatWithId(Long chatId, User owner) {
-        Chat chat = new Chat(owner, "테스트 채팅방");
+        IgAccount igAccount = createIgAccountWithId(99L, owner);
+        Chat chat = new Chat(owner, igAccount, "테스트 채팅방");
         ReflectionTestUtils.setField(chat, "chatId", chatId);
         return chat;
     }
@@ -140,7 +151,7 @@ class ChatServiceTest {
         User user = createUserWithId(1L);
         Chat chat = createChatWithId(10L, user);
         when(chatRepository.findById(10L)).thenReturn(Optional.of(chat));
-        when(searchEngine.search("커피"))
+        when(searchEngine.search(eq("커피"), anyLong()))
                 .thenReturn(SearchResult.success("검색 결과입니다", List.of()));
         stubMessageSaveWithIncrementingId();
 
@@ -165,7 +176,7 @@ class ChatServiceTest {
         Chat chat = createChatWithId(10L, user);
         when(chatRepository.findById(10L)).thenReturn(Optional.of(chat));
         // 검색 실패 상황
-        when(searchEngine.search("실패검색어")).thenReturn(SearchResult.failure());
+        when(searchEngine.search(eq("실패검색어"), anyLong())).thenReturn(SearchResult.failure());
         stubMessageSaveWithIncrementingId();
 
         SearchResponse response = chatService.search(1L, 10L, "실패검색어");
@@ -184,19 +195,21 @@ class ChatServiceTest {
     void 새_채팅방을_생성하면_채팅방과_응답을_반환한다() {
         chatService = createService();
         User user = createUserWithId(1L);
+        IgAccount igAccount = createIgAccountWithId(5L, user);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(igAccountService.getLinkedAccountById(1L, 5L)).thenReturn(igAccount);
         when(chatRepository.save(any(Chat.class))).thenAnswer(inv -> {
             Chat c = inv.getArgument(0);
             ReflectionTestUtils.setField(c, "chatId", 10L);
             return c;
         });
-        when(searchEngine.search("여행"))
+        when(searchEngine.search(eq("여행"), anyLong()))
                 .thenReturn(SearchResult.success("여행 검색 결과", List.of()));
         stubMessageSaveWithIncrementingId();
         when(messageRepository.findRecentMessages(eq(10L), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        SearchNewChatResponse response = chatService.searchNewChat(1L, "여행");
+        SearchNewChatResponse response = chatService.searchNewChat(1L, "여행", 5L);
 
         assertThat(response.chat().id()).isEqualTo(10L);
         assertThat(response.chat().title()).isEqualTo("여행");
@@ -209,18 +222,20 @@ class ChatServiceTest {
     void 새_채팅방에서_답변_생성에_실패해도_채팅방과_질의는_반환된다() {
         chatService = createService();
         User user = createUserWithId(1L);
+        IgAccount igAccount = createIgAccountWithId(5L, user);
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(igAccountService.getLinkedAccountById(1L, 5L)).thenReturn(igAccount);
         when(chatRepository.save(any(Chat.class))).thenAnswer(inv -> {
             Chat c = inv.getArgument(0);
             ReflectionTestUtils.setField(c, "chatId", 10L);
             return c;
         });
-        when(searchEngine.search("실패검색어")).thenReturn(SearchResult.failure());
+        when(searchEngine.search(eq("실패검색어"), anyLong())).thenReturn(SearchResult.failure());
         stubMessageSaveWithIncrementingId();
         when(messageRepository.findRecentMessages(eq(10L), any(Pageable.class)))
                 .thenReturn(List.of());
 
-        SearchNewChatResponse response = chatService.searchNewChat(1L, "실패검색어");
+        SearchNewChatResponse response = chatService.searchNewChat(1L, "실패검색어", 5L);
 
         // 채팅방은 정상 생성됨
         assertThat(response.chat().id()).isEqualTo(10L);
@@ -240,7 +255,7 @@ class ChatServiceTest {
         List<Post> fivePosts = List.of(
                 mock(Post.class), mock(Post.class), mock(Post.class),
                 mock(Post.class), mock(Post.class));
-        when(searchEngine.search("음식"))
+        when(searchEngine.search(eq("음식"), anyLong()))
                 .thenReturn(SearchResult.success("음식 결과", fivePosts));
         when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
             Message m = inv.getArgument(0);

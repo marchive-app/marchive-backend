@@ -1,6 +1,7 @@
 package com.marchive.marchive_backend.chat.domain;
 
 import com.marchive.marchive_backend.auth.domain.User;
+import com.marchive.marchive_backend.igaccount.domain.IgAccount;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,6 +42,10 @@ public class Chat {
     @OrderBy("messageId ASC")
     private List<Message> messages = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ig_account_id", nullable = false)
+    private IgAccount igAccount;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -49,8 +54,9 @@ public class Chat {
     protected Chat() {
     }
 
-    public Chat(User user, String title) {
+    public Chat(User user, IgAccount igAccount, String title) {
         this.user = user;
+        this.igAccount = igAccount;
         this.title = title;
     }
 
@@ -72,5 +78,9 @@ public class Chat {
 
     public List<Message> getMessages() {
         return messages;
+    }
+
+    public IgAccount getIgAccount() {
+        return igAccount;
     }
 }

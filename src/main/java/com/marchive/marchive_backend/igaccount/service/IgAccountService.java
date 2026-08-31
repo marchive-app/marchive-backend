@@ -67,6 +67,19 @@ public class IgAccountService {
         return igAccount;
     }
 
+    // DB id로 조회 + 소유권 검증
+    @Transactional(readOnly = true)
+    public IgAccount getLinkedAccountById(Long userId, Long igAccountId) {
+        IgAccount igAccount = igAccountRepository.findById(igAccountId)
+                .orElseThrow(() -> new IllegalArgumentException("연동되지 않은 인스타그램 계정입니다."));
+
+        if (!igAccount.getUser().getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 인스타그램 계정이 아닙니다.");
+        }
+
+        return igAccount;
+    }
+
     private void validateOwner(IgAccount igAccount, Long userId) {
         if (!igAccount.getUser().getUserId().equals(userId)) {
             throw new IllegalArgumentException("이미 다른 사용자와 연동된 인스타그램 계정입니다.");

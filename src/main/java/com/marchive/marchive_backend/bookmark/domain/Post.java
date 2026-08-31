@@ -83,6 +83,22 @@ public class Post {
         return igCode;
     }
 
+    public String getAuthorHandle() {
+        return authorHandle;
+    }
+
+    public String getCaption() {
+        return caption;
+    }
+
+    public LocalDateTime getPostedAt() {
+        return postedAt;
+    }
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
     public List<PostMedia> getMediaList() {
         return mediaList;
     }

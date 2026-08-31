@@ -28,3 +28,6 @@ aws:
   region: ap-northeast-2
   s3:
     bucket: marchive-s3-478982785818
+
+gemini:
+  api-key: ${GEMINI_API_KEY}
