@@ -19,7 +19,7 @@ public class GeminiChatClient {
     private String apiKey;
 
     // 답변 생성용 모델. 임베딩 모델과는 다른 모델을 씀
-    private static final String MODEL_NAME = "gemini-2.5-flash";
+    private static final String MODEL_NAME = "gemini-3.6-flash";
     private static final String GENERATE_URL =
             "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL_NAME + ":generateContent";
 
