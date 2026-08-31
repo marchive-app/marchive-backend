@@ -3,7 +3,12 @@ spring:
     url: jdbc:mysql://localhost:3306/marchive?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=Asia/Seoul
     username: root
     password: ${DEV_DB_PASSWORD}
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data-dev.sql
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: create-drop
     show-sql: true
