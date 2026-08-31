@@ -114,4 +114,45 @@ public class QdrantService {
             throw new RuntimeException("Qdrant 유사도 검색 실행 실패: " + e.getMessage(), e);
         }
     }
+
+    // 디버깅용: postId + 유사도 점수를 함께 반환
+    public List<ScoredResult> searchSimilarPostsWithScore(Long igAccountId, List<Float> searchVector) {
+        Filter filter = Filter.newBuilder()
+                .addMust(Condition.newBuilder()
+                        .setField(FieldCondition.newBuilder()
+                                .setKey("ig_account_id")
+                                .setMatch(Match.newBuilder().setInteger(igAccountId).build())
+                                .build())
+                        .build())
+                .build();
+
+        SearchPoints searchPoints = SearchPoints.newBuilder()
+                .setCollectionName(COLLECTION_NAME)
+                .addAllVector(searchVector)
+                .setFilter(filter)
+                .setLimit(10)
+                .setWithPayload(WithPayloadSelector.newBuilder().setEnable(true).build())
+                .build();
+
+        try {
+            List<ScoredPoint> results = qdrantClient.searchAsync(searchPoints).get();
+
+            return results.stream()
+                    .map(sp -> new ScoredResult(
+                            sp.getPayloadMap().get("post_id").getIntegerValue(),
+                            sp.getScore()
+                    ))
+                    .toList();
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Qdrant 검색 중 스레드가 중단되었습니다.", e);
+        } catch (java.util.concurrent.ExecutionException e) {
+            throw new RuntimeException("Qdrant 유사도 검색 실행 실패: " + e.getMessage(), e);
+        }
+    }
+
+    // 결과를 담을 간단한 record
+    public record ScoredResult(Long postId, float score) {
+    }
 }
