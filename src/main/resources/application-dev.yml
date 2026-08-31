@@ -9,3 +9,5 @@ spring:
     show-sql: true
 jwt:
   secret: ${DEV_JWT_SECRET}
+qdrant:
+  host: localhost
